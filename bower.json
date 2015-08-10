@@ -1,0 +1,12 @@
+{
+    "name": "ji-angular-mobile",
+    "version": "1.0.0",
+    "description": "jirvan utilities library for Mobile AngularJS applications",
+    "main": [
+        "./ji-angular-mobile.css",
+        "./ji-angular-mobile.js"
+    ],
+    "dependencies": {
+        "angular": ">=1.3"
+    }
+}
