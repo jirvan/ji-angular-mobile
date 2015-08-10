@@ -1,6 +1,6 @@
 /*
 
- ji-angular-mobile-1.0.0.js
+ ji-angular-mobile-1.0.1.js
 
  Copyright (c) 2014,2015 Jirvan Pty Ltd
  All rights reserved.
@@ -33,10 +33,10 @@
 (function () {
     //'use strict';
 
-    angular.module('jiAngular', [])
+    angular.module('jiAngularMobile', [])
 
         //========== ji service ==========//
-        .factory('ji', ['$filter', '$modal', function ($filter, $modal) { return new JiService($filter, $modal); }])
+        .factory('ji', ['$filter', function ($filter) { return new JiService($filter); }])
 
         //========== logonDialog service etc ==========//
         //.factory('jiLogonDialog', function ($modal) { return new LogonDialogService($modal); })
@@ -152,7 +152,7 @@
         return obj;
     }
 
-    function JiService($filter, $modal) {
+    function JiService($filter) {
 
         this.firstAncestorWithClass = firstAncestorWithClass;
         this.firstAncestorWithTagName = firstAncestorWithTagName;
@@ -350,7 +350,7 @@
 
         this.coalesce = function (item1, item2, item3, item4, item5, item6, item7, item8, item9, item10, item11) {
             if (item11 || item11 === 0) {
-                throw new Error('ji-angular coalesce(): A maximum of 10 items can be "coalesced"');
+                throw new Error('ji-angular-mobile coalesce(): A maximum of 10 items can be "coalesced"');
             }
             if (item1 || item1 === 0) return item1;
             else if (item2 || item2 === 0) return item2;
