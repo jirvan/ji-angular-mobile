@@ -1,6 +1,6 @@
 /*
 
-ji-angular-mobile-1.0.1.css
+ji-angular-mobile-1.0.2.css
 
  Copyright (c) 2015 Jirvan Pty Ltd
  All rights reserved.
@@ -29,3 +29,53 @@ ji-angular-mobile-1.0.1.css
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  */
+
+.ji-sliding-panel-container {
+ position: relative; /* Can be overriden by anything other than "static" */
+ overflow-x: hidden
+}
+
+.ji-sliding-panel.ng-hide-add.slide-left, .ji-sliding-panel.ng-hide-remove.slide-left, .ji-sliding-panel.ng-hide-add.slide-right, .ji-sliding-panel.ng-hide-remove.slide-right {
+ -webkit-transition: all linear 0.5s;
+ -moz-transition: all linear 0.5s;
+ -o-transition: all linear 0.5s;
+ transition: all linear 0.5s;
+ display: block !important;
+ position: absolute;
+ top: 0;
+ left: 0;
+ right: 0;
+ bottom: 0;
+}
+
+.ji-sliding-panel.ng-hide-add.slide-left {
+ left: 0;
+}
+
+.ji-sliding-panel.ng-hide-add.ng-hide-add-active.slide-left {
+ left: -100%;
+}
+
+.ji-sliding-panel.ng-hide-remove.slide-left {
+ left: 100%;
+}
+
+.ji-sliding-panel.ng-hide-remove.ng-hide-remove-active.slide-left {
+ left: 0;
+}
+
+.ji-sliding-panel.ng-hide-add.slide-right {
+ left: 0;
+}
+
+.ji-sliding-panel.ng-hide-add.ng-hide-add-active.slide-right {
+ left: 100%;
+}
+
+.ji-sliding-panel.ng-hide-remove.slide-right {
+ left: -100%;
+}
+
+.ji-sliding-panel.ng-hide-remove.ng-hide-remove-active.slide-right {
+ left: 0;
+}

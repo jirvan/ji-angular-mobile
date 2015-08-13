@@ -1,6 +1,6 @@
 /*
 
- ji-angular-mobile-1.0.1.js
+ ji-angular-mobile-1.0.2.js
 
  Copyright (c) 2014,2015 Jirvan Pty Ltd
  All rights reserved.
@@ -81,7 +81,90 @@
                                scope.$parent[attr.jiParentScopeElement] = element;
                            }
                        };
-                   });
+                   })
+
+        //========== ji-form ==========//
+        .directive('jiForm', ['$timeout', function ($timeout) {
+            return {
+                restrict: 'A',
+                link: function (scope, element, attrs) {
+
+                    var form, formName = element[0].getAttribute("name");
+                    if (formName) {
+                        form = scope[formName];
+                        form.element = element;
+                        form.touchAllInputs = touchAllInputs;
+                        form.moveFocusToFirstInvalidInput = moveFocusToFirstInvalidInput;
+                        form.validate = validate;
+                        form.resetInputs = resetInputs;
+                        $timeout(resetInputs, 0);
+
+                        function resetInputs() {
+                            form.inputs = [];
+                            for (fieldName in form) {
+                                if (fieldName[0] != '$' && form[fieldName] && (typeof form[fieldName].$pristine != 'undefined')) {
+                                    var field = form[fieldName];
+                                    var inputElements = element.find("input");
+                                    for (var i = 0; i < inputElements.length; i++) {
+                                        if (inputElements[i].getAttribute("name") === fieldName) {
+                                            form.inputs.push(field);
+                                            field.element = inputElements[i];
+                                            inputElements[i].onfocus = function (event) {
+                                                var targetName = event.target.getAttribute("name");
+                                                if (targetName && scope[formName] && scope[formName][targetName]) {
+                                                    $timeout(function () {scope.$eval(formName + "." + targetName + ".$jiHasFocus = true")}, 0);
+                                                }
+                                            };
+                                            inputElements[i].onblur = function () {
+                                                var targetName = event.target.getAttribute("name");
+                                                if (targetName && scope[formName] && scope[formName][targetName]) {
+                                                    $timeout(function () {scope.$eval(formName + "." + targetName + ".$jiHasFocus = false")}, 0);
+                                                }
+                                            };
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    } else {
+                        throw new Error("ji-form: Form element does not have a name")
+                    }
+
+                    function moveFocusToFirstInvalidInput() {
+                        var formInputs = form.element.find('input');
+                        for (var i = 0; i < formInputs.length; i++) {
+                            if (angular.element(formInputs[i]).hasClass('ng-invalid')) {
+                                formInputs[i].focus();
+                                break;
+                            }
+                        }
+                    }
+
+                    function touchAllInputs() {
+                        for (var i = 0; i < form.inputs.length; i++) {
+                            form.inputs[i].$dirty = true;
+                            form.inputs[i].$pristine = false;
+                            angular.element(form.inputs[i].element).removeClass('ng-pristine');
+                            angular.element(form.inputs[i].element).addClass('ng-dirty');
+                        }
+                        form.$setDirty();
+                    }
+
+                    function validate(resetInputsBeforeValidating) {
+                        if (resetInputsBeforeValidating) form.resetInputs(); // Necessary sometime when an input is added (eg by ng-if) after the initial setting of the inputs
+                        form.touchAllInputs();
+                        if (form.$valid) {
+                            return true;
+                        } else {
+                            form.moveFocusToFirstInvalidInput();
+                            return false;
+                        }
+                    }
+
+                }
+            };
+        }]);
 
     function firstAncestorWithClass(element, clazz) {
         var parent = angular.element(element).parent();
@@ -371,70 +454,92 @@
 
 })();
 
-//// This is reluctantly added as a global because it needs to be accessed at the config stage
-//// by angularjs where it would not be possible to make it available as a service etc
-//JiConfig = {
-//
-//    // Deprecated - only present to support angular 1.2.
-//    // Use logonPageToUnauthorizedResponseInterceptor below for angular 1.3
-//    logonPageToUnauthorizedResponseTransformFunction: function ($q) {
-//        return function (promise) {
-//            return promise.then(
-//                function (response) {
-//
-//                    if (response.status === 200
-//                        && response.data
-//                        && typeof response.data === "string"
-//                        && response.data.substr(0, 22) === '<!-- logonPageFlag -->') {
-//
-//                        // Alter response
-//                        response.status = 401;
-//                        response.statusText = 'Unauthorized';
-//                        response.generatedByLogonPageToUnauthorizedResponseTransformFunction = true;
-//                        response.data = "HTTP 401: Unauthorized" + (response.config && response.config.url ? ' for ' + response.config.url : '');
-//
-//                        return $q.reject(response);
-//
-//                    } else {
-//                        return response;
-//                    }
-//
-//
-//                },
-//                function (response) {
-//                    return $q.reject(response);
-//                });
-//
-//        }
-//
-//    },
-//
-//    // This is compatible with angular 1.3
-//    logonPageToUnauthorizedResponseInterceptor: function ($q) {
-//
-//        return {
-//            'response': function (response) {
-//
-//                if (response.status === 200
-//                    && response.data
-//                    && typeof response.data === "string"
-//                    && response.data.substr(0, 22) === '<!-- logonPageFlag -->') {
-//
-//                    // Alter response
-//                    response.status = 401;
-//                    response.statusText = 'Unauthorized';
-//                    response.generatedByLogonPageToUnauthorizedResponseTransformFunction = true;
-//                    response.data = "HTTP 401: Unauthorized" + (response.config && response.config.url ? ' for ' + response.config.url : '');
-//
-//                    return $q.reject(response);
-//
-//                } else {
-//                    return response;
-//                }
-//
-//            }
-//        };
-//
-//    }
-//
-//}
+// This is reluctantly added as a global because it needs to be accessed at the config stage
+// by angularjs where it would not be possible to make it available as a service etc
+JiConfig = {
+
+    convertIso8601DateStringsToDates: function (dateString) {
+
+        // Ignore things that aren't objects.
+        if (typeof dateString !== "object") return dateString;
+
+        for (var key in dateString) {
+            if (!dateString.hasOwnProperty(key)) continue;
+
+            var value = dateString[key];
+            var match;
+            // Check for string properties which look like dates.
+            if (typeof value === "string" && (match = value.match(/^(\d{4}|\+\d{6})(?:-(\d{2})(?:-(\d{2})(?:T(\d{2}):(\d{2}):(\d{2})\.(\d{1,})(Z|([\-+])(\d{2}):(\d{2}))?)?)?)?$/))) {
+                var milliseconds = Date.parse(match[0])
+                if (!isNaN(milliseconds)) {
+                    dateString[key] = new Date(milliseconds);
+                }
+            } else if (typeof value === "object") {
+                JiConfig.convertIso8601DateStringsToDates(value);
+            }
+        }
+    }
+
+    //// Deprecated - only present to support angular 1.2.
+    //// Use logonPageToUnauthorizedResponseInterceptor below for angular 1.3
+    //logonPageToUnauthorizedResponseTransformFunction: function ($q) {
+    //    return function (promise) {
+    //        return promise.then(
+    //            function (response) {
+    //
+    //                if (response.status === 200
+    //                    && response.data
+    //                    && typeof response.data === "string"
+    //                    && response.data.substr(0, 22) === '<!-- logonPageFlag -->') {
+    //
+    //                    // Alter response
+    //                    response.status = 401;
+    //                    response.statusText = 'Unauthorized';
+    //                    response.generatedByLogonPageToUnauthorizedResponseTransformFunction = true;
+    //                    response.data = "HTTP 401: Unauthorized" + (response.config && response.config.url ? ' for ' + response.config.url : '');
+    //
+    //                    return $q.reject(response);
+    //
+    //                } else {
+    //                    return response;
+    //                }
+    //
+    //
+    //            },
+    //            function (response) {
+    //                return $q.reject(response);
+    //            });
+    //
+    //    }
+    //
+    //},
+    //
+    //// This is compatible with angular 1.3
+    //logonPageToUnauthorizedResponseInterceptor: function ($q) {
+    //
+    //    return {
+    //        'response': function (response) {
+    //
+    //            if (response.status === 200
+    //                && response.data
+    //                && typeof response.data === "string"
+    //                && response.data.substr(0, 22) === '<!-- logonPageFlag -->') {
+    //
+    //                // Alter response
+    //                response.status = 401;
+    //                response.statusText = 'Unauthorized';
+    //                response.generatedByLogonPageToUnauthorizedResponseTransformFunction = true;
+    //                response.data = "HTTP 401: Unauthorized" + (response.config && response.config.url ? ' for ' + response.config.url : '');
+    //
+    //                return $q.reject(response);
+    //
+    //            } else {
+    //                return response;
+    //            }
+    //
+    //        }
+    //    };
+    //
+    //}
+
+};
