@@ -1,6 +1,6 @@
 /*
 
- ji-angular-mobile-1.0.2.js
+ ji-angular-mobile-1.0.3.js
 
  Copyright (c) 2014,2015 Jirvan Pty Ltd
  All rights reserved.
@@ -33,10 +33,12 @@
 (function () {
     //'use strict';
 
-    angular.module('jiAngularMobile', [])
+    var jiErrorModalInstance = {};
+
+    angular.module('jiAngularMobile', ['mobile-angular-ui'])
 
         //========== ji service ==========//
-        .factory('ji', ['$filter', function ($filter) { return new JiService($filter); }])
+        .factory('ji', ['SharedState', function (SharedState) { return new JiService(SharedState); }])
 
         //========== logonDialog service etc ==========//
         //.factory('jiLogonDialog', function ($modal) { return new LogonDialogService($modal); })
@@ -46,42 +48,86 @@
         //.factory('jiResetPasswordDialog', function ($modal) { return new ResetPasswordDialogService($modal); })
         //.controller('ResetPasswordDialogController', ResetPasswordDialogController)
 
+        //========== ji-error-modal ==========//
+        .directive('jiErrorModal', function () {
+
+            return {
+                restrict: 'EA',
+                replace: 'false',
+                controller: Controller,
+                template: function () {
+                    return "<div class=\"modal modal-overlay\" ui-if='jiErrorModal' ui-state='jiErrorModal'>\n" +
+                           "    <div class=\"modal-dialog\" style=\"width: 100%; height: 100%\">\n" +
+                           "        <div class=\"modal-content\" style=\"position:relative; width: 100%; height: 100%\">\n" +
+                           "            <div class=\"modal-header\" style=\"position: absolute; top: 0; right: 0; left: 0\">\n" +
+                           "                <h4 class=\"modal-title text-danger\">{{modal.title}}</h4>\n" +
+                           "            </div>\n" +
+                           "            <div class=\"scrollable\" style='padding-top: 40px'>\n" +
+                           "                <div class=\"modal-body scrollable-content\">\n" +
+                           "\n" +
+                           "                    <br/>\n" +
+                           "                    <p class=\"text-danger\">{{modal.errorMessage}}</p>\n" +
+                           "\n" +
+                           "                </div>\n" +
+                           "                <div class=\"modal-footer scrollable-footer\">\n" +
+                           "                    <button class=\"btn btn-danger\" ng-click=\"close()\">Ok</button>\n" +
+                           "                </div>\n" +
+                           "            </div>\n" +
+                           "\n" +
+                           "        </div>\n" +
+                           "    </div>\n" +
+                           "</div>";
+                }
+            };
+
+            function Controller($scope, SharedState) {
+
+                $scope.modal = jiErrorModalInstance;
+
+                $scope.close = function () {
+                    SharedState.turnOff('jiErrorModal');
+                };
+
+            }
+
+        })
+
         //========== ji-auto-focus ==========//
         .directive('jiAutoFocus', function ($timeout) {
-                       return {
-                           restrict: 'AC',
-                           link: function (scope, element) {
+            return {
+                restrict: 'AC',
+                link: function (scope, element) {
 
-                               // Set the standard attribute to disable the $modal hijacking of autofocus
-                               element.attr("autofocus", true);
+                    // Set the standard attribute to disable the $modal hijacking of autofocus
+                    element.attr("autofocus", true);
 
-                               $timeout(function () {
-                                   element[0].focus();
-                               }, 0);
+                    $timeout(function () {
+                        element[0].focus();
+                    }, 0);
 
-                           }
-                       };
-                   })
+                }
+            };
+        })
 
         //========== ji-scope-element ==========//
         .directive('jiScopeElement', function () {
-                       return {
-                           restrict: 'A',
-                           link: function (scope, element, attr) {
-                               scope[attr.jiScopeElement] = element;
-                           }
-                       };
-                   })
+            return {
+                restrict: 'A',
+                link: function (scope, element, attr) {
+                    scope[attr.jiScopeElement] = element;
+                }
+            };
+        })
 
         //========== ji-parent-scope-element ==========//
         .directive('jiParentScopeElement', function () {
-                       return {
-                           restrict: 'A',
-                           link: function (scope, element, attr) {
-                               scope.$parent[attr.jiParentScopeElement] = element;
-                           }
-                       };
-                   })
+            return {
+                restrict: 'A',
+                link: function (scope, element, attr) {
+                    scope.$parent[attr.jiParentScopeElement] = element;
+                }
+            };
+        })
 
         //========== ji-form ==========//
         .directive('jiForm', ['$timeout', function ($timeout) {
@@ -218,24 +264,7 @@
         }
     }
 
-    function extractWindowLocationSearchParameters(windowLocationSearch) {
-        var pairs = windowLocationSearch.substring(1).split("&");
-        var obj = {};
-        var pair;
-        var i;
-
-        for (i in pairs) {
-            if (pairs[i] === "")
-                continue;
-
-            pair = pairs[i].split("=");
-            obj[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
-        }
-
-        return obj;
-    }
-
-    function JiService($filter) {
+    function JiService(SharedState) {
 
         this.firstAncestorWithClass = firstAncestorWithClass;
         this.firstAncestorWithTagName = firstAncestorWithTagName;
@@ -263,166 +292,44 @@
             }
         };
 
-        //this.showErrorDialog = function (response) {
-        //    var dialogTitle, errorMessage;
-        //    if (response) {
-        //        //if (response.ignore) {
-        //        //    return;
-        //        //} else
-        //        if (response.data && response.data.errorName) {
-        //            dialogTitle = response.data.errorName;
-        //            errorMessage = response.data.errorMessage ? response.data.errorMessage : JSON.stringify(response);
-        //        } else if (response.config && response.config.url) {
-        //            dialogTitle = response.status ? 'HTTP ' + response.status + ' error' : 'Error';
-        //            errorMessage = response.statusText ? response.statusText + ' for ' + response.config.url : 'For ' + response.config.url;
-        //        } else {
-        //            dialogTitle = 'Error ';
-        //            errorMessage = typeof response === 'string' ? response : JSON.stringify(response);
-        //        }
-        //    } else {
-        //        dialogTitle = 'Error ';
-        //        errorMessage = '';
-        //    }
-        //    $modal.open({
-        //        template: '<div class="modal-header"><h3 class="modal-title">{{dialogTitle}}</h3></div>\n<div class="modal-body">\n    {{errorMessage}}\n</div>\n<div class="modal-footer">\n    <button class="btn btn-danger" ng-click="ok()">Ok</button>\n</div>',
-        //        controller: function ($scope, $modalInstance, dialogTitle) {
-        //            $scope.dialogTitle = dialogTitle;
-        //            $scope.errorMessage = errorMessage;
-        //            $scope.ok = function () {
-        //                $modalInstance.close();
-        //            };
-        //        },
-        //        windowClass: !dialogTitle || dialogTitle.length > 25
-        //            ? 'ji-error-dialog-lg'
-        //            : 'ji-error-dialog',
-        //        resolve: {
-        //            dialogTitle: function () { return dialogTitle; },
-        //            errorMessage: function () { return errorMessage; }
-        //        },
-        //        backdrop: false
-        //    });
-        //};
-        //
-        //this.showMessageDialog = function (messageOrOptions) {
-        //    var providedResultHandler;
-        //    if (messageOrOptions.message) {
-        //        options = messageOrOptions;
-        //    } else {
-        //        options = {message: messageOrOptions};
-        //    }
-        //    if (!options.buttons) {
-        //        options.buttons = [{class: 'btn-primary', title: 'Ok'}]
-        //    }
-        //    $modal.open({
-        //        template: '<div ng-show="options.title" class="modal-header"><h3 class="modal-title" ng-bind-html="options.title"></h3></div>\n<div class="modal-body" ng-bind-html="options.message"></div>\n<div class="modal-footer" ng-style="!options.title ? {\'border-top-style\': \'none\'} : null">\n    <button ng-repeat="button in options.buttons" class="btn" ng-class="button.class" ng-click="buttonClicked(button.value ? button.value : button.title)" ng-bind-html="button.title"></button>\n</div>',
-        //        controller: function ($scope, $modalInstance, options) {
-        //            $scope.options = options;
-        //            $scope.buttonClicked = function (value) {
-        //                $modalInstance.close();
-        //                if (providedResultHandler) {
-        //                    providedResultHandler(value);
-        //                }
-        //            };
-        //        },
-        //        windowClass: options.dialogWidth ? 'ji-message-dialog-' + options.dialogWidth : 'ji-message-dialog-250px',
-        //        resolve: {
-        //            options: function () { return options; }
-        //        },
-        //        backdrop: false
-        //    });
-        //    return {
-        //        then: function (resultHandler) {
-        //            providedResultHandler = resultHandler;
-        //        }
-        //    }
-        //};
-        //
-        //this.showPickDateDialog = function (dialogTitle) {
-        //    var providedResultHandler;
-        //    $modal.open({
-        //        template: "<div ng-if=\"dialogTitle\" class=\"modal-header\"><h4 class=\"modal-title\">{{dialogTitle}}</h4></div>\n<div class=\"modal-body\" style=\"text-align: center; padding: 15px\">\n    <div style=\"display:inline-block; text-align: right\">\n        <datepicker ng-model=\"selectedDate\" min-date=\"minDate\" show-weeks=\"false\" ng-change=\"dateSelected(selectedDate)\"></datepicker>\n        <button class=\"btn-sm btn-default\" style=\'margin-top: 10px; padding: 3px\' ng-click=\"cancel()\">Cancel</button>\n    </div>\n</div>",
-        //        controller: function ($scope, $modalInstance, dialogTitle) {
-        //            $scope.dialogTitle = dialogTitle;
-        //            $scope.dateSelected = function (selectedDate) {
-        //                if (providedResultHandler) {
-        //                    providedResultHandler(selectedDate);
-        //                }
-        //                $modalInstance.close();
-        //            };
-        //            $scope.cancel = function () {
-        //                $modalInstance.close();
-        //            };
-        //        },
-        //        windowClass: dialogTitle && dialogTitle.length > 25
-        //            ? 'ji-date-dialog-lg'
-        //            : 'ji-date-dialog',
-        //        resolve: {
-        //            dialogTitle: function () { return dialogTitle; }
-        //        },
-        //        backdrop: false
-        //    });
-        //    return {
-        //        then: function (resultHandler) {
-        //            providedResultHandler = resultHandler;
-        //        }
-        //    }
-        //};
+        this.showErrorModal = function (response) {
+            var dialogTitle, errorMessage, errorInfo;
+            if (response) {
+                if (response.data && response.data.errorName) {
+                    dialogTitle = response.data.errorName;
+                    errorMessage = response.data.errorMessage ? response.data.errorMessage : JSON.stringify(response);
+                } else if (response.error && response.message) {
+                    dialogTitle = response.status ? 'HTTP ' + response.status + ' error: ' + response.error : 'Error';
+                    errorMessage = response.message;
+                } else if (response.data && response.data.error && response.data.message) {
+                    dialogTitle = response.data.status ? 'HTTP ' + response.data.status + ' error: ' + response.data.error : 'Error';
+                    errorMessage = response.data.message;
+                } else if (response.config && response.config.url) {
+                    dialogTitle = response.status ? 'HTTP ' + response.status + ' error' : 'Error';
+                    errorMessage = response.statusText ? response.statusText + ' for ' + response.config.url : 'For ' + response.config.url;
+                } else if (response.message) {
+                    dialogTitle = response.status ? 'HTTP ' + response.status + ' error' : 'Error';
+                    errorMessage = response.message;
+                } else {
+                    dialogTitle = 'Error ';
+                    errorMessage = typeof response === 'string' ? response : JSON.stringify(response);
+                }
+                if (response.errorInfo) {
+                    errorInfo = response.errorInfo;
+                } else if (response.data && response.data.errorInfo) {
+                    errorInfo = response.data.errorInfo;
+                }
+            } else {
+                dialogTitle = 'Error ';
+                errorMessage = '';
+            }
 
-        //this.ngGridTextSearchFilter = function (gridOptions, searchText, item) {
-        //    if (!gridOptions) throw new Error("gridOptions must be provided");
-        //    if (!item) return null;
-        //    if (!searchText) return item;
-        //
-        //    var searchRegExp = new RegExp("(" + searchText + ")", "i");
-        //    var newItem = angular.copy(item);
-        //    newItem.originalItem = item;
-        //    var fieldsToSearch = determineFieldsToSearch();
-        //
-        //    // Highlight any search pattern occurrences
-        //    findAndHighlightHits(fieldsToSearch);
-        //    if (anythingFound(fieldsToSearch)) {
-        //        return newItem;
-        //    } else {
-        //        return null;
-        //    }
-        //
-        //    function anythingFound(fieldNames) {
-        //        for (var i = 0; i < fieldNames.length; i++) {
-        //            if (item[fieldNames[i]] !== newItem[fieldNames[i]]) {
-        //                return true;
-        //            }
-        //        }
-        //        return false;
-        //    }
-        //
-        //    function findAndHighlightHits(fieldNames) {
-        //        for (var i = 0; i < fieldNames.length; i++) {
-        //            if (newItem[fieldNames[i]]) {
-        //                newItem[fieldNames[i]] = newItem[fieldNames[i]].replace(searchRegExp, "<span class='ji-found-text'>$1</span>");
-        //            }
-        //        }
-        //    }
-        //
-        //    function determineFieldsToSearch() {
-        //        var i, fields = [];
-        //        if (gridOptions.$gridScope) {  // ng-grid
-        //            var candidateColumns = gridOptions.$gridScope.columns;
-        //            for (i = 0; i < candidateColumns.length; i++) {
-        //                if (candidateColumns[i].colDef.textSearchable && candidateColumns[i].visible) {
-        //                    fields.push(candidateColumns[i].field)
-        //                }
-        //            }
-        //        } else {                       // ui-grid
-        //            for (i = 0; i < gridOptions.columnDefs.length; i++) {
-        //                if (gridOptions.columnDefs[i].textSearchable && (gridOptions.columnDefs[i].visible == undefined || gridOptions.columnDefs[i].visible)) {
-        //                    fields.push(gridOptions.columnDefs[i].field)
-        //                }
-        //            }
-        //        }
-        //        return fields;
-        //    }
-        //
-        //};
+            jiErrorModalInstance.title = dialogTitle;
+            jiErrorModalInstance.errorMessage = errorMessage;
+            jiErrorModalInstance.errorInfo = errorInfo;
+            SharedState.turnOn('jiErrorModal');
+
+        };
 
         this.isIn = function (item, items) {
             for (var i = 0; i < items.length; i++) {
@@ -448,15 +355,30 @@
             else return null;
         };
 
-        this.extractWindowLocationSearchParameters = extractWindowLocationSearchParameters;
-
     }
 
 })();
 
 // This is reluctantly added as a global because it needs to be accessed at the config stage
 // by angularjs where it would not be possible to make it available as a service etc
-JiConfig = {
+JiGlobal = {
+
+    extractWindowLocationSearchParameters: function (windowLocationSearch) {
+        var pairs = windowLocationSearch.substring(1).split("&");
+        var obj = {};
+        var pair;
+        var i;
+
+        for (i in pairs) {
+            if (pairs[i] === "")
+                continue;
+
+            pair = pairs[i].split("=");
+            obj[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+        }
+
+        return obj;
+    },
 
     convertIso8601DateStringsToDates: function (dateString) {
 
@@ -475,7 +397,7 @@ JiConfig = {
                     dateString[key] = new Date(milliseconds);
                 }
             } else if (typeof value === "object") {
-                JiConfig.convertIso8601DateStringsToDates(value);
+                JiGlobal.convertIso8601DateStringsToDates(value);
             }
         }
     }
