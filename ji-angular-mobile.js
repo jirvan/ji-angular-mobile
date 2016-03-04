@@ -1,6 +1,6 @@
 /*
 
- ji-angular-mobile-1.0.3.js
+ ji-angular-mobile-1.0.4.js
 
  Copyright (c) 2014,2015 Jirvan Pty Ltd
  All rights reserved.
@@ -400,68 +400,107 @@ JiGlobal = {
                 JiGlobal.convertIso8601DateStringsToDates(value);
             }
         }
-    }
+    },
 
-    //// Deprecated - only present to support angular 1.2.
-    //// Use logonPageToUnauthorizedResponseInterceptor below for angular 1.3
-    //logonPageToUnauthorizedResponseTransformFunction: function ($q) {
-    //    return function (promise) {
-    //        return promise.then(
-    //            function (response) {
-    //
-    //                if (response.status === 200
-    //                    && response.data
-    //                    && typeof response.data === "string"
-    //                    && response.data.substr(0, 22) === '<!-- logonPageFlag -->') {
-    //
-    //                    // Alter response
-    //                    response.status = 401;
-    //                    response.statusText = 'Unauthorized';
-    //                    response.generatedByLogonPageToUnauthorizedResponseTransformFunction = true;
-    //                    response.data = "HTTP 401: Unauthorized" + (response.config && response.config.url ? ' for ' + response.config.url : '');
-    //
-    //                    return $q.reject(response);
-    //
-    //                } else {
-    //                    return response;
-    //                }
-    //
-    //
-    //            },
-    //            function (response) {
-    //                return $q.reject(response);
-    //            });
-    //
-    //    }
-    //
-    //},
-    //
-    //// This is compatible with angular 1.3
-    //logonPageToUnauthorizedResponseInterceptor: function ($q) {
-    //
-    //    return {
-    //        'response': function (response) {
-    //
-    //            if (response.status === 200
-    //                && response.data
-    //                && typeof response.data === "string"
-    //                && response.data.substr(0, 22) === '<!-- logonPageFlag -->') {
-    //
-    //                // Alter response
-    //                response.status = 401;
-    //                response.statusText = 'Unauthorized';
-    //                response.generatedByLogonPageToUnauthorizedResponseTransformFunction = true;
-    //                response.data = "HTTP 401: Unauthorized" + (response.config && response.config.url ? ' for ' + response.config.url : '');
-    //
-    //                return $q.reject(response);
-    //
-    //            } else {
-    //                return response;
-    //            }
-    //
-    //        }
-    //    };
-    //
-    //}
+    baseAppConfig: function ($provide, $httpProvider) {
+
+        // If $httpProvider.responseInterceptors exists then angular 1.2.x is being used
+        if ($httpProvider.responseInterceptors) {
+            $httpProvider.responseInterceptors.push(JiGlobal.logonPageToUnauthorizedResponseTransformFunction);
+        } else {
+            $httpProvider.interceptors.push(JiGlobal.logonPageToUnauthorizedResponseInterceptor);
+        }
+
+        // default exception handler just logs uncaught exceptions - this will show an alert also
+        $provide.decorator("$exceptionHandler", function ($delegate) {
+            return function (exception, cause) {
+                $delegate(exception, cause);
+                var errorMessage, causeMessage;
+                if (typeof exception === "string") {
+                    errorMessage = exception;
+                } else if (exception.message) {
+                    errorMessage = exception.message;
+                } else {
+                    errorMessage = angular.toJson(exception, "pretty");
+                }
+                if (cause) {
+                    alert('exception:\n' + errorMessage
+                          + '\n\ncause:\n' + (typeof cause === "string" ? cause : angular.toJson(cause, "pretty")));
+                } else {
+                    alert(errorMessage);
+                }
+            };
+        });
+
+
+        // This is commented out as it seems to conflict with the spring url
+        // Conditionally set the html5Mode to remove the # in the urls (if possible)
+//                if (window.history && window.history.pushState) {
+//                    $locationProvider.html5Mode(true);
+//                }
+
+    },
+
+    // Deprecated - only present to support angular 1.2.
+    // Use logonPageToUnauthorizedResponseInterceptor below for angular 1.3
+    logonPageToUnauthorizedResponseTransformFunction: function ($q) {
+        return function (promise) {
+            return promise.then(
+                function (response) {
+
+                    if (response.status === 200
+                        && response.data
+                        && typeof response.data === "string"
+                        && response.data.substr(0, 22) === '<!-- logonPageFlag -->') {
+
+                        // Alter response
+                        response.status = 401;
+                        response.statusText = 'Unauthorized';
+                        response.generatedByLogonPageToUnauthorizedResponseTransformFunction = true;
+                        response.data = "HTTP 401: Unauthorized" + (response.config && response.config.url ? ' for ' + response.config.url : '');
+
+                        return $q.reject(response);
+
+                    } else {
+                        return response;
+                    }
+
+
+                },
+                function (response) {
+                    return $q.reject(response);
+                });
+
+        }
+
+    },
+
+    // This is compatible with angular 1.3
+    logonPageToUnauthorizedResponseInterceptor: function ($q) {
+
+        return {
+            'response': function (response) {
+
+                if (response.status === 200
+                    && response.data
+                    && typeof response.data === "string"
+                    && response.data.substr(0, 22) === '<!-- logonPageFlag -->') {
+
+                    // Alter response
+                    response.status = 401;
+                    response.statusText = 'Unauthorized';
+                    response.generatedByLogonPageToUnauthorizedResponseTransformFunction = true;
+                    response.data = "HTTP 401: Unauthorized" + (response.config && response.config.url ? ' for ' + response.config.url : '');
+
+                    return $q.reject(response);
+
+                } else {
+                    return response;
+                }
+
+            }
+        };
+
+    }
 
 };
